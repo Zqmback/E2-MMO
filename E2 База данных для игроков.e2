@@ -1,0 +1,31 @@
+@name PlayersTable
+@persist PlayersData:table
+
+PlayersData = table()
+
+function fillPlayersData(Player:entity)
+{
+    local Table = table()
+    Table["PlayerName", string] = Player:name()
+    Table["Verificated", number] = 1
+    Table["HP", number] = 100
+    Table["Mana", number] = 100
+    #zapolnaem dannie igroka po ego steamID
+    PlayersData[Player:steamID(), table] = Table
+}
+
+event keyPressed(Player:entity, Key:string, Down:number, Bind:string)
+{
+    local Verificated = PlayersData[Player:steamID(), table]["Verificated", number]
+    
+    if (Key == "i" & Down == 1 & Verificated != 1)
+    {
+        fillPlayersData(Player)
+        printTable(PlayersData)
+    }
+    elseif (Key == "k" & Down == 1  & Verificated == 1)
+    {
+        PlayersData[Player:steamID(), table]["HP", number] = 10000
+        printTable(PlayersData)
+    }
+}

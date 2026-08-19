@@ -1,0 +1,175 @@
+@name Main(client)
+@inputs PlayersData:table
+@inputs EGP:wirelink
+
+@persist MassIndex:number
+@persist EGPmass:array
+@persist PlayerEntity:entity
+@persist GroupMass:array
+
+#interface
+MassIndex = 1
+EGPmass = array()
+GroupMass = array()
+PlayerEntity = entity()
+
+function var(Name:string){
+    return PlayersData[PlayerEntity:steamID(), table][Name, number]   
+}
+function var(Name:string,Value:number){
+    PlayersData[PlayerEntity:steamID(), table][Name, number] = Value   
+}
+
+function egpCreateBox(Name:string,Position:vector2,Size:vector2, Color:vector, Group:string){
+    Position[1] = Position[1] + Size[1]/2
+    Position[2] = Position[2] + Size[2]/2
+    
+    EGP:egpBox(MassIndex, Position, Size)
+    EGP:egpColor(MassIndex, Color)
+    
+    EGPmass[MassIndex] = Name
+    GroupMass[MassIndex] = Group
+    MassIndex++
+}
+
+function egpCreateLabel(Name:string,Text:string,Position:vector2,Size:number,Color:vector, Group:string){
+    Mass = Name:explode(" ")
+    
+    EGP:egpText(MassIndex, Text, Position)
+    EGP:egpFont(MassIndex, "Roboto")
+    EGP:egpColor(MassIndex, Color)
+    EGP:egpSize(MassIndex, Size)
+    
+    if(Mass[2, string] == "label"){
+        EGP:egpParent(MassIndex, EGPmass:indexOf(Mass[1,string]))
+    }
+    
+    EGPmass[MassIndex] = Name
+    GroupMass[MassIndex] = Group
+    MassIndex++
+}
+
+function egpIndex(Name:string){
+    local Index = EGPmass:indexOf(Name)
+    return Index
+}
+
+function egpClearAll(){
+    EGP:egpClear()
+    EGPmass = array()
+    MassIndex = 1
+}
+
+function egpHide(Group:string){
+    for(I = 0, GroupMass:count()){
+        if(GroupMass[I, string] == Group){
+            EGP:egpAlpha(I, 0)
+        }
+    }
+}
+function egpShow(Group:string){
+    for(I = 0, GroupMass:count()){
+        if(GroupMass[I, string] == Group){
+            EGP:egpAlpha(I, 10000)
+        }
+    }
+}
+
+function collapsed_menu(){
+    #Create
+    egpCreateBox("collapsed_menu", vec2(1700, 900), vec2(200, 50), vec(54, 52, 61), "collapsed_menu")
+    egpCreateLabel("collapsed_menu label", "Menu (M)", vec2(-95, -15), 30, vec(255), "collapsed_menu")
+    egpHide("collapsed_menu")
+}
+
+function resetStatPointLabel(Key:string){
+    timer(0.1, function() {
+        if(Key == "h"){
+            EGP:egpText(egpIndex("button_1 label Power_count"), " " + var("PowerStat"), EGP:egpPos(egpIndex("button_1 label Power_count")))
+        }
+        elseif(Key == "j"){
+            EGP:egpText(egpIndex("button_2 label Magic_count"), " " + var("MagicStat"), EGP:egpPos(egpIndex("button_1 label Power_count")))
+        }
+        elseif(Key == "k"){
+            EGP:egpText(egpIndex("button_3 label Mana_count"), " " + var("ManaStat"), EGP:egpPos(egpIndex("button_1 label Power_count")))
+        }
+        elseif(Key == "l"){
+            EGP:egpText(egpIndex("button_4 label Health_count"), " " + var("HealthStat"), EGP:egpPos(egpIndex("button_1 label Power_count")))
+        } 
+    })
+}
+
+function expanded_menu(){
+    #Menu
+    egpCreateBox("expanded_menu", vec2(1650, 450), vec2(250, 500), vec(54, 52, 61), "expanded_menu")
+    #Menu_Label
+    egpCreateLabel("expanded_menu label", "Menu (M)", vec2(-55, -250), 30, vec(255), "expanded_menu")
+    #SettingsForButtons
+    #ColorForButtons = vec(100,100,100)
+    local ButtonWidth = 200
+    local ButtonHeight = 60
+    local ButtonX = 1675
+    #1
+    egpCreateBox("button_1", vec2(ButtonX, 550), vec2(ButtonWidth, ButtonHeight), vec(255, 119, 107), "expanded_menu")
+    egpCreateLabel("button_1 label", "Power:H", vec2(-90,-20), 30, vec(255), "expanded_menu")
+    egpCreateLabel("button_1 label Power_count", " " + var("PowerStat"), vec2(30,-25), 42, vec(255), "expanded_menu")
+    #2
+    egpCreateBox("button_2", vec2(ButtonX, 650), vec2(ButtonWidth, ButtonHeight), vec(215, 196, 90), "expanded_menu")
+    egpCreateLabel("button_2 label", "Magic:J", vec2(-90,-20), 30, vec(255), "expanded_menu")
+    egpCreateLabel("button_2 label Magic_count", " " + var("MagicStat"), vec2(30,-25), 42, vec(255), "expanded_menu")
+    #3
+    egpCreateBox("button_3", vec2(ButtonX, 750), vec2(ButtonWidth, ButtonHeight), vec(126, 200, 217), "expanded_menu")
+    egpCreateLabel("button_3 label", "Mana:K", vec2(-90,-20), 30, vec(255), "expanded_menu")
+    egpCreateLabel("button_3 label Mana_count", " " + var("ManaStat"), vec2(30,-25), 42, vec(255), "expanded_menu")
+    #4
+    egpCreateBox("button_4", vec2(ButtonX, 850), vec2(ButtonWidth, ButtonHeight), vec(114, 200, 114), "expanded_menu")
+    egpCreateLabel("button_4 label", "Health:L", vec2(-90,-20), 30, vec(255), "expanded_menu")
+    egpCreateLabel("button_4 label Health_count", " " + var("HealthStat"), vec2(30,-25), 42, vec(255), "expanded_menu")
+    egpHide("expanded_menu") 
+}
+
+if (first()) {
+    EGP:egpClear()
+    #Menu Off
+    collapsed_menu()
+    expanded_menu()
+    egpShow("collapsed_menu")
+}
+
+event keyPressed(Player:entity, Key:string, Down:number, Bind:string)
+{  
+    if(Key == "i" & Down == 1 & PlayerEntity == entity()){
+        timer(0.1, function() {
+            PlayerEntity = Player
+            print("Entity vereficirovan")
+        })
+    }
+    
+    elseif(PlayerEntity == Player){
+        
+        local On_Off_Menu = var("On_Off_Menu")
+    
+        if (Key == "m" & Down == 1 & On_Off_Menu == 0) {
+            egpHide("collapsed_menu")
+            egpShow("expanded_menu")
+        }
+        elseif (Key == "m" & Down == 1 & On_Off_Menu == 1) {
+            egpHide("expanded_menu")
+            egpShow("collapsed_menu")
+        }
+        #Stats
+        elseif (Key == "h" & Down == 1 & On_Off_Menu == 1) {
+            resetStatPointLabel(Key)
+        }
+        elseif (Key == "j" & Down == 1 & On_Off_Menu == 1) {
+            resetStatPointLabel(Key)
+        }
+        elseif (Key == "k" & Down == 1 & On_Off_Menu == 1) {
+            resetStatPointLabel(Key)
+        }
+        elseif (Key == "l" & Down == 1 & On_Off_Menu == 1) {
+            resetStatPointLabel(Key)
+        }
+    }
+}
+
