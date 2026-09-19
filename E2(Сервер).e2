@@ -1,0 +1,137 @@
+@name Main(server)
+@outputs WL:wirelink PlayersData:table
+#PlayerVerificated
+@persist PlayersData:table
+@persist TargetPlayer:entity
+TargetPlayer = entity()
+PlayersData = table()
+function verificate(Player:entity){
+    local Table = table()
+    #Verificated
+    Table["PlayerIdVereficated", number] = 1
+    Table["Nickname", string] = Player:name()
+    #Dannie Statov
+    Table["PowerStat", number] = 0
+    Table["MagicStat", number] = 0
+    Table["ManaStat", number] = 0
+    Table["HealthStat", number] = 0
+    Table["Money", number] = 0
+    Table["QuestId", number] = 0
+    Table["QuestCount", number] = 0
+    Table["On_Off_Menu", number] = 0
+    #zapolnaem dannie igroka po ego steamID
+    PlayersData[Player:steamID(), table] = Table
+
+    print("Noviy entity vereficirovan")
+}
+
+function var(Name:string){
+    return PlayersData[TargetPlayer:steamID(), table][Name, number]   
+}
+function var(Name:string,Value:number){
+    PlayersData[TargetPlayer:steamID(), table][Name, number] = Value   
+}
+
+function targetPlayerVar(Player:entity){
+    if(TargetPlayer != Player){
+        TargetPlayer = Player
+    }
+}
+
+function breenFor_playerUseEvent(){
+    print("Hello, traveler! Can you help me?")
+    print("Quest accept")
+    var("QuestId",1)
+    var("QuestCount",0)
+}
+
+function zombieQuestKill_entityDamageEvent(Victim:entity){
+    if (Victim:getClass() != "npc_zombie"){return}
+    if (Victim:health()>0){return}
+    #esli ubil zombie
+    var("QuestCount",var("QuestCount") + 1)
+    print("You killed Zombie: " + var("QuestCount") + "/5")
+    #esli vipolnil kvest
+    if(var("QuestCount") >= 5){
+        var("QuestId",0)
+        var("QuestCount",0)
+        print("Quest complete!")
+    } 
+}
+
+if (first()) {
+    
+}
+
+event keyPressed(Player:entity, Key:string, Down:number, Bind:string)
+{   
+    targetPlayerVar(Player)
+
+    if(Key == "i" & Down == 1 & var("PlayerIdVereficated") == 0){
+        verificate(Player)
+    }
+    #If Verificated
+    elseif(var("PlayerIdVereficated") == 1){
+        local On_Off_Menu = var("On_Off_Menu")
+        if (Key == "m" & Down == 1 & On_Off_Menu == 0) {
+            var("On_Off_Menu",1)
+        }
+        elseif (Key == "m" & Down == 1 & On_Off_Menu == 1) {
+            var("On_Off_Menu",0)
+        }
+        #Stats
+        elseif (Key == "h" & Down == 1 & On_Off_Menu == 1) {
+            var("PowerStat",var("PowerStat") + 1)    
+        }
+        elseif (Key == "j" & Down == 1 & On_Off_Menu == 1) {
+            var("MagicStat",var("MagicStat") + 1)
+            Player:plyRunSpeed(500 + var("MagicStat")*10)
+        }
+        elseif (Key == "k" & Down == 1 & On_Off_Menu == 1) {
+            var("ManaStat", var("ManaStat") + 1)
+        }
+        elseif (Key == "l" & Down == 1 & On_Off_Menu == 1) {
+            var("HealthStat",var("HealthStat") + 1)
+            Player:setHealth(100 + var("HealthStat")*5)
+        }
+    }
+}
+
+event playerUse(Player:entity, Entity:entity){
+    targetPlayerVar(Player)
+    if(var("PlayerIdVereficated") == 1){
+        if (Entity:getClass() == "npc_breen")
+        {
+            breenFor_playerUseEvent()    
+        }
+    }
+}
+
+event entityDamage(Victim:entity, Damage:damage){
+    #PlayerEntity
+    local Attacker = Damage:getAttacker()
+    local DamageNumber = Damage:getAmount()
+
+    if(!Attacker:isValid()){exit()}
+    if(!Attacker:isPlayer()){exit()}
+    targetPlayerVar(Attacker)
+    if(var("PlayerIdVereficated") != 1){exit()} #If not Verificated
+
+    if (!timerExists("DamageCooldown")) {
+
+        timer("DamageCooldown", 0.1, function(){})
+        Victim:takeDamage(DamageNumber/2)
+        print("Your Damage = " + DamageNumber)
+        print("All Damage = " + (DamageNumber/2 + DamageNumber))
+        
+        if(var("QuestId") == 1){
+            zombieQuestKill_entityDamageEvent(Victim)
+        }
+        
+    }
+}
+
+
+event chat(Player:entity, Message:string, Team:number){
+    
+}

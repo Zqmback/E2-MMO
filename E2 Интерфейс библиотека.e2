@@ -1,0 +1,54 @@
+@name TestImageFunction
+@inputs EGP:wirelink
+@persist EGPmass:array
+@persist MassIndex:number
+
+MassIndex = 1
+EGPmass = array()
+
+function egpCreateBox(Name:string,Position:vector2,Size:vector2, Color:vector){
+    Position[1] = Position[1] + Size[1]/2
+    Position[2] = Position[2] + Size[2]/2
+    
+    EGP:egpBox(MassIndex, Position, Size)
+    EGP:egpColor(MassIndex, Color)
+    
+    EGPmass[MassIndex] = Name
+    MassIndex++
+}
+
+function egpCreateLabel(Name:string,Text:string,Position:vector2,Size:number,Color:vector){
+    Mass = Name:explode(" ")
+    
+    EGP:egpText(MassIndex, Text, Position)
+    EGP:egpFont(MassIndex, "Roboto")
+    EGP:egpColor(MassIndex, Color)
+    EGP:egpSize(MassIndex, Size)
+    
+    if(Mass[2, string] == "label"){
+        EGP:egpParent(MassIndex, EGPmass:indexOf(Mass[1,string]))
+    }
+    
+    EGPmass[MassIndex] = Name
+    MassIndex++
+}
+
+function egpIndex(Name:string){
+    local Index = EGPmass:indexOf(Name)
+    return Index
+}
+
+function collapsed_menu(){
+    EGP:egpClear()
+    
+    egpCreateBox("collapsed_menu", vec2(0, 0), vec2(500, 500), vec(54, 52, 61))
+    egpCreateLabel("collapsed_label", "gg", vec2(-95, -15), 30, vec(255))
+    
+    #EGP:egpMaterial(egpIndex("collapsed_menu"),"models/props_lab/warp_sheet")
+}
+
+if (first()) {
+    collapsed_menu()
+}
+
+
