@@ -3,8 +3,10 @@
 #PlayerVerificated
 @persist PlayersData:table
 @persist TargetPlayer:entity
+@persist StartRunSpeed:number
 TargetPlayer = entity()
 PlayersData = table()
+StartRunSpeed = 400
 function verificate(Player:entity){
     local Table = table()
     #Verificated
@@ -15,10 +17,16 @@ function verificate(Player:entity){
     Table["MagicStat", number] = 0
     Table["ManaStat", number] = 0
     Table["HealthStat", number] = 0
+    Table["StatCount", number] = 0
     Table["Money", number] = 0
     Table["QuestId", number] = 0
     Table["QuestCount", number] = 0
     Table["On_Off_Menu", number] = 0
+    Table["Mana", number] = 0
+    Table["ManaMax", number] = 0
+    Table["Lvl", number] = 0
+    Table["Exp", number] = 0
+    Table["ExpMax", number] = 0
     #zapolnaem dannie igroka po ego steamID
     PlayersData[Player:steamID(), table] = Table
 
@@ -38,6 +46,27 @@ function targetPlayerVar(Player:entity){
     }
 }
 
+function sendUpdate(WhatUpdate:string, Player:entity){
+    local Table = table()
+    Table["WhatLocalUpdate", string] = WhatUpdate
+    Table["PlayerForLocalUpdate", entity] = Player
+    PlayersData[0, table] = Table
+    signalSend("signal", 0)
+}
+
+function getPowerAdd(Damage:number){
+    return (Damage/100)*(3*var("PowerStat"))
+}
+function getRunSpeed(){
+    return StartRunSpeed + var("MagicStat")*10
+}
+function getManaMax(){
+    return var("ManaStat")*5
+}
+function getHealthMax(){
+    return 100 + var("HealthStat")*5
+}
+
 function breenFor_playerUseEvent(){
     print("Hello, traveler! Can you help me?")
     print("Quest accept")
@@ -45,7 +74,7 @@ function breenFor_playerUseEvent(){
     var("QuestCount",0)
 }
 
-function zombieQuestKill_entityDamageEvent(Victim:entity){
+function zombieQuestKill_entityDamageEvent(Victim:entity, Player:entity){
     if (Victim:getClass() != "npc_zombie"){return}
     if (Victim:health()>0){return}
     #esli ubil zombie
@@ -55,55 +84,78 @@ function zombieQuestKill_entityDamageEvent(Victim:entity){
     if(var("QuestCount") >= 5){
         var("QuestId",0)
         var("QuestCount",0)
+        var("Money", var("Money")+100)
         print("Quest complete!")
+        sendUpdate("Money", Player)
     } 
 }
 
-if (first()) {
+function entityKill(){ #Victim:entity, Damage:damage
     
+}
+function entityDamage(){ #Victim:entity, Damage:damage
+    
+}
+
+if (first()) {
+    print("Vereficiruite Igroka 'I'")  
 }
 
 event keyPressed(Player:entity, Key:string, Down:number, Bind:string)
 {   
     targetPlayerVar(Player)
-
     if(Key == "i" & Down == 1 & var("PlayerIdVereficated") == 0){
-        verificate(Player)
+        verificate(Player) 
     }
     #If Verificated
-    elseif(var("PlayerIdVereficated") == 1){
-        local On_Off_Menu = var("On_Off_Menu")
-        if (Key == "m" & Down == 1 & On_Off_Menu == 0) {
-            var("On_Off_Menu",1)
-        }
-        elseif (Key == "m" & Down == 1 & On_Off_Menu == 1) {
-            var("On_Off_Menu",0)
-        }
-        #Stats
-        elseif (Key == "h" & Down == 1 & On_Off_Menu == 1) {
-            var("PowerStat",var("PowerStat") + 1)    
-        }
-        elseif (Key == "j" & Down == 1 & On_Off_Menu == 1) {
-            var("MagicStat",var("MagicStat") + 1)
-            Player:plyRunSpeed(500 + var("MagicStat")*10)
-        }
-        elseif (Key == "k" & Down == 1 & On_Off_Menu == 1) {
-            var("ManaStat", var("ManaStat") + 1)
-        }
-        elseif (Key == "l" & Down == 1 & On_Off_Menu == 1) {
+    if(var("PlayerIdVereficated") == 0){exit()}
+
+    local On_Off_Menu = var("On_Off_Menu")
+    if (Key == "m" & Down == 1 & On_Off_Menu == 0) {
+        var("On_Off_Menu",1)
+        sendUpdate("StatMenuOn", Player)
+    }
+    elseif (Key == "m" & Down == 1 & On_Off_Menu == 1) {
+        var("On_Off_Menu",0)
+        sendUpdate("StatMenuOff", Player)
+    }
+    #Stats
+    elseif (Key == "h" & Down == 1 & On_Off_Menu == 1) {
+        var("PowerStat",var("PowerStat") + 1) 
+        sendUpdate("PowerStat", Player)
+    }
+    elseif (Key == "j" & Down == 1 & On_Off_Menu == 1) {
+        var("MagicStat",var("MagicStat") + 1)
+        Player:plyRunSpeed(getRunSpeed())
+        sendUpdate("MagicStat", Player)
+    }
+    elseif (Key == "k" & Down == 1 & On_Off_Menu == 1) {
+        var("ManaStat", var("ManaStat") + 1)
+        var("ManaMax", getManaMax())
+        var("Mana", var("ManaMax"))
+        sendUpdate("ManaStat", Player)
+        #sendUpdate("Mana", Player)
+    }
+    elseif (Key == "l" & Down == 1 & On_Off_Menu == 1) {
+        if(Player:health() == Player:maxHealth()){
             var("HealthStat",var("HealthStat") + 1)
-            Player:setHealth(100 + var("HealthStat")*5)
+            Player:setMaxHealth(getHealthMax())
+            sendUpdate("HealthStat", Player)
         }
+        else{
+            var("HealthStat",var("HealthStat") + 1)
+            sendUpdate("HealthStat", Player)
+        } 
     }
 }
 
 event playerUse(Player:entity, Entity:entity){
     targetPlayerVar(Player)
-    if(var("PlayerIdVereficated") == 1){
-        if (Entity:getClass() == "npc_breen")
-        {
-            breenFor_playerUseEvent()    
-        }
+    if(var("PlayerIdVereficated") == 0){exit()}
+
+    if (Entity:getClass() == "npc_breen")
+    {
+        breenFor_playerUseEvent()
     }
 }
 
@@ -118,20 +170,27 @@ event entityDamage(Victim:entity, Damage:damage){
     if(var("PlayerIdVereficated") != 1){exit()} #If not Verificated
 
     if (!timerExists("DamageCooldown")) {
-
         timer("DamageCooldown", 0.1, function(){})
-        Victim:takeDamage(DamageNumber/2)
-        print("Your Damage = " + DamageNumber)
-        print("All Damage = " + (DamageNumber/2 + DamageNumber))
+
+        Victim:takeDamage(getPowerAdd(DamageNumber))
+        print("Your base damage: " + DamageNumber)
+        print("Your add damage: " + getPowerAdd(DamageNumber))
         
         if(var("QuestId") == 1){
-            zombieQuestKill_entityDamageEvent(Victim)
+            zombieQuestKill_entityDamageEvent(Victim, Attacker)
         }
-        
     }
 }
 
-
 event chat(Player:entity, Message:string, Team:number){
     
+}
+
+event playerSpawn(Player:entity)
+{   
+    targetPlayerVar(Player)
+    timer(0.1, function() {
+        Player:plyRunSpeed(getRunSpeed())
+        Player:setMaxHealth(getHealthMax()) 
+    })
 }
