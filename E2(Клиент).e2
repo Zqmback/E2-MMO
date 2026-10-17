@@ -155,6 +155,11 @@ function egpShow(Group:string){
     }
 }
 
+function started_menu(){
+    egpCreateBox("started_menu", vec2(35, 897), vec2(230, 70), vec(0), "started_menu")
+    egpCreateLabel("started_menu label", "Please press 'I'", vec2(-80,-15), 30, vec(250,220,50), "started_menu")
+}
+
 function collapsed_menu(){
     local TextPos = vec2(-95, -10)
     local CountPos = vec2(30, -20)
@@ -186,6 +191,8 @@ function collapsed_menu(){
     egpCreateBox("Skill_Bar", vec2(275, 992), vec2(20 + 50*SkillCount + 15*(SkillCount-1), 60))
     for(I = 0, SkillCount-1, 1){
         egpCreateBox("Skill_Cell" + I, vec2(285 + 65 * I, 997), vec2(50, 50))
+        Mass = array("N","N","N")
+        egpCreateLabel("Skill_Cell" + I + " label", Mass[I+1, string], vec2(-10,-20), 40)
     }
 }
 
@@ -232,40 +239,40 @@ function expanded_menu(){
 if (first()) {
     resetData()
     EGP:egpClear()
+    started_menu()
     #Menu Off
-    collapsed_menu()
-    expanded_menu()
 }
 
 event keyPressed(Player:entity, Key:string, Down:number, Bind:string)
 {  
-    timer(0.1, function() {
-        if(Key == "i" & Down == 1 & PlayerEntity == entity()){
-            PlayerEntity = Player
-            print("Entity vereficirovan")
-            #print(PlayerEntity)
-        }
-    })  
+    if(Key == "i" & Down == 1 & PlayerEntity == entity()){
+        PlayerEntity = Player
+        print("Entity vereficirovan")
+        egpHide("started_menu")
+        timer(0.01, function() {
+            collapsed_menu()
+            expanded_menu()
+        })
+    }
 }
 
 if(signalClk()){
-    #print(PlayersData[0, table]["PlayerForLocalUpdate", entity])
     if(PlayersData[0, table]["PlayerForLocalUpdate", entity] != PlayerEntity){exit()}
-    #print(PlayerEntity)
-    local What = PlayersData[0, table]["WhatLocalUpdate", string]
+    local WhatTable = PlayersData[PlayerEntity:steamID(), table]["WhatLocalUpdateTable", table]
     
-    if(PlayersData[PlayerEntity:steamID(), table]:exists(What)){
-        labelUpdate(What)
+    foreach(Key:string, Value:string = WhatTable){
+        
+        if(Key != Value){print("Something strange")}
+        
+        if(PlayersData[PlayerEntity:steamID(), table]:exists(Value)){
+            labelUpdate(Value)
+        }
+        elseif(Value == "StatMenuOn"){
+            egpShow("expanded_menu") 
+        }
+        elseif(Value == "StatMenuOff"){
+            egpHide("expanded_menu") 
+        }
     }
-    
-    if(What == "ManaStat"){
-        labelUpdate("Mana")
-    }
-
-    elseif(What == "StatMenuOn"){
-        egpShow("expanded_menu") 
-    }
-    elseif(What == "StatMenuOff"){
-        egpHide("expanded_menu") 
-    }
+    PlayersData[PlayerEntity:steamID(), table]["WhatLocalUpdateTable", table] = table()
 }
